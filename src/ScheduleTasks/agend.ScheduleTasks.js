@@ -57,10 +57,24 @@ agenda.define(
             throw new ApiError(400, "something went wrong");
         }
     });
-(async () => {
-    await agenda.start();
-    console.log('Agenda  started');
-})();
+
+const agenda_delete_scheduled_appointments = new Agenda({ db: { address: 'mongodb://localhost:27017/doctors' }, debug: true });
+agenda_delete_scheduled_appointments?.on('ready', () => console.log('Agenda started successfully'))
+agenda_delete_scheduled_appointments?.on('err', () => console.log('Agenda connection error:', err));
+
+agenda_delete_scheduled_appointments.define(
+    'remove_appointment_after_expiery', async (job) => {
+        try {
+            const { doctorId } = job.attrs.data;
+        } catch (error) {
+
+        }
+    }
+)
+    (async () => {
+        await agenda.start();
+        console.log('Agenda  started');
+    })();
 
 
 

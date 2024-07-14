@@ -1,19 +1,14 @@
-const { Mongoose, Schema, default: mongoose } = require('mongoose');
-const { string } = require('three/examples/jsm/nodes/Nodes.js');
+const { Mongoose, default: mongoose } = require('mongoose');
 
 
 const indentification = new mongoose.Schema({
     type: mongoose.Types.ObjectId,
     role: {
-        type: string,
+        type: String,
         role: ['User', 'Doctor'],
     }
 });
-const NotificationSchema = new Mongoose.Schema({
-    sender: {
-        type: indentification,
-        required: true
-    },
+const NotificationSchema = new mongoose.Schema({
     reciver: {
         type: indentification,
         required: true

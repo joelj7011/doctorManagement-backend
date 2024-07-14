@@ -2,9 +2,9 @@ const router = require('express').Router();
 const { getDetailOfthePatient, createDoctor, loginDoctor, getDoctorData, setCriteria, manualUpdate } = require('../Controllers/Doctor.Controller');
 const { authentication, verifyAuthorityUser } = require('../Middleware/auth.Middleware');
 const { body } = require('express-validator');
+const upload = require('../Middleware/Multer.Middleware');
 
-
-router.post('/createdoctor', [
+router.post('/createdoctor', upload.single("profileImage"), [
     body('name').custom((value) => {
 
         if (!value || value.trim().length <= 3) {
@@ -70,7 +70,7 @@ router.post('/setcriteria', [
             throw new Error("field is required");
         }
     }).withMessage("field is required"),
-    
+
     body('end').custom((value) => {
         if (!value) {
             throw new Error("field is required");
@@ -78,6 +78,7 @@ router.post('/setcriteria', [
     }).withMessage("field is required"),
 ], authentication, verifyAuthorityUser, setCriteria);
 router.post('/updatemanually', authentication, verifyAuthorityUser, manualUpdate);
+
 
 
 module.exports = router;

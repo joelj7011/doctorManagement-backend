@@ -6,47 +6,15 @@ const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     phone: { type: Number, required: true },
-    profileImage: { type: String },
+    profileImage: { type: String, required: true },
     address: { type: String, required: true },
     refreshToken: { type: String },
     appointmentStatus: [{
-        appointment: {
-            type: Boolean,
-            default: false
-        },
-        patient: [
-            {
-                patientnumber: {
-                    type: Number
-                },
-                time: {
-                    type: String
-                },
-                day: {
-                    type: String
-                },
-                date: {
-                    type: String
-                }
-            }
-        ]
-
+        appointment: { type: Boolean, default: false },
+        patient: [{ patientnumber: { type: Number }, time: { type: String }, day: { type: String }, date: { type: String } }]
     }],
-    history: [
-        {
-            doctorId: {
-                type: mongoose.Types.ObjectId,
-                ref: 'appointment'
-            },
-            date: {
-                type: String,
-                require: true
-            }
-        }
-    ],
-
+    history: [{ doctorId: { type: mongoose.Types.ObjectId, ref: 'appointment' }, date: { type: String, require: true } }],
     role: { type: String, required: true },
-
 }, { timestamps: true });
 
 userSchema.methods.hashPassword = function (password) {

@@ -31,6 +31,6 @@ exports.convertToISOTime = function (time12h) {
     date.setUTCHours(hours, minutes, 0, 0);
     console.log("->", date);
     const isoString = date.toISOString().slice(0, -1);
-    console.log("->", isoString); // Log to verify conversion
+    console.log("->", isoString); 
     return isoString;
 }

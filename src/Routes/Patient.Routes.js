@@ -1,5 +1,5 @@
 const router = require('express').Router();
-const { fetchAllDoctors, BookAppointment, CancleAppointment, createUser, login, getuserData, History } = require('../Controllers/Patient.Controller');
+const { fetchAllDoctors, BookAppointment, CancleAppointment, createUser, login, getuserData, History, BookAppointmentManually } = require('../Controllers/Patient.Controller');
 const { verifyAuthority, authentication } = require('../Middleware/auth.Middleware');
 const { body } = require('express-validator');
 
@@ -53,5 +53,6 @@ router.get('/getData', authentication, getuserData);
 router.get('/fetchalldoctors', authentication, verifyAuthority, fetchAllDoctors);
 router.post('/makeappointment/:id', authentication, verifyAuthority, BookAppointment);
 router.post('/cancleappointment/:id', authentication, verifyAuthority, CancleAppointment);
-router.get('/history', authentication, verifyAuthority, History)
+router.get('/history', authentication, verifyAuthority, History);
+router.post('/makeappointment_manually/:id', authentication, verifyAuthority, BookAppointmentManually)
 module.exports = router;

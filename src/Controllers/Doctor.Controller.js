@@ -9,6 +9,7 @@ const catchAsyncErrors = require("../Utils/CatchAsyncError.util");
 const { GenerateTokens } = require("../Utils/SendToken.utils");
 const { agenda } = require('../ScheduleTasks/agend.ScheduleTasks');
 const { default: mongoose } = require('mongoose');
+const { asyncHandler } = require('../Utils/AsyncHandler.Utiles');
 
 
 exports.createDoctor = async (req, res) => {
@@ -18,16 +19,16 @@ exports.createDoctor = async (req, res) => {
             console.log("test1-passed");
         } else {
             console.log("test1-failed");
-            throw new ApiError(400, "al;l fields are required");
+            throw new ApiError(400, "all fields are required");
         }
-
         const doctor = await Doctor.create({
             name: req.body.name,
             email: req.body.email,
             password: req.body.password,
             phone: req.body.phone,
             address: req.body.address,
-            role: req.body.role
+            role: req.body.role,
+            profileImage: req.file.path
         });
         if (doctor) {
             console.log("test2-passed");
@@ -35,7 +36,6 @@ exports.createDoctor = async (req, res) => {
             console.log("test2-failed");
             throw new ApiError(401, "doctor could not be created");
         }
-
         const headPassword = await doctor.hashPassword(doctor.password);
         if (headPassword) {
             console.log("test3-passed");
@@ -44,50 +44,46 @@ exports.createDoctor = async (req, res) => {
             console.log("test3-failed");
             return res.status(400).json({ error: "could not hash the password" });
         }
-
     } catch (error) {
         catchAsyncErrors(error, req, res);
     }
 };
-exports.loginDoctor = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        if (email && password) {
-            console.log("test1-passed");
-        } else {
-            console.log("test1-failed");
-            throw new ApiError(400, "all fields are required");
-        }
-
-        const doctor = await Doctor.findOne({ email: email });
-        if (doctor) {
-            console.log("test2-passed");
-        } else {
-            console.log("test2-failed");
-            throw new ApiError(400, "email not found");
-        }
-
-        const passwordCompare = await doctor?.comparePassword(password);
-        if (passwordCompare) {
-            console.log("test3-passed");
-        } else {
-            console.log("test3-failed");
-            return res.status(401).json({ message: 'please login with correct credentials' });
-        }
-
-        const { accessToken, refreshToken } = await GenerateTokens(null, doctor.id);
-        if (accessToken && refreshToken) {
-            console.log("test4-passed");
-        } else {
-            console.log("test4-failed");
-        }
-
-        return res.status(200).cookie('accessToken', accessToken, options).cookie('refreshToken', refreshToken, options).json(new ApiResponse(200, { data: doctor, accessToken, refreshToken }, "user logged in"));
-
-    } catch (error) {
-        catchAsyncErrors(error, req, res);
+exports.loginDoctor = asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
+    if (email && password) {
+        console.log("test1-passed");
+    } else {
+        console.log("test1-failed");
+        throw new ApiError(400, "all fields are required");
     }
-};
+
+    const doctor = await Doctor.findOne({ email: email });
+    if (doctor) {
+        console.log("test2-passed");
+    } else {
+        console.log("test2-failed");
+        throw new ApiError(400, "email not found");
+    }
+
+    const passwordCompare = await doctor?.comparePassword(password);
+    if (passwordCompare) {
+        console.log("test3-passed");
+    } else {
+        console.log("test3-failed");
+        return res.status(401).json({ message: 'please login with correct credentials' });
+    }
+
+    const { accessToken, refreshToken } = await GenerateTokens(null, doctor.id);
+    if (accessToken && refreshToken) {
+        console.log("test4-passed");
+    } else {
+        console.log("test4-failed");
+    }
+
+    return res.status(200).cookie('accessToken', accessToken, options).cookie('refreshToken', refreshToken, options).json(new ApiResponse(200, { data: doctor, accessToken, refreshToken }, "user logged in"));
+
+
+});
 exports.getDoctorData = async (req, res) => {
     try {
         const doctor = await Doctor.findById(req.doctor.id);
@@ -97,7 +93,6 @@ exports.getDoctorData = async (req, res) => {
             console.log("test2-failed");
             throw new ApiError(400, "data was not found");
         }
-
         const filterdetails = filterdetail(doctor);
         if (filterdetails) {
             console.log("test1->passed");
@@ -113,6 +108,7 @@ exports.getDoctorData = async (req, res) => {
 };
 exports.setCriteria = async (req, res) => {
     try {
+
         const { HowManyPatients, day, start, end } = req.body;
         if (HowManyPatients && day && start && end) {
             console.log("test1-passed");
@@ -120,6 +116,7 @@ exports.setCriteria = async (req, res) => {
             console.log("test1-failed");
             throw new ApiError(401, "all fileds are required");
         }
+
         const startTimeISO = convertToISOTime(start);
         if (startTimeISO) {
             console.log("test2-passed");
@@ -127,6 +124,7 @@ exports.setCriteria = async (req, res) => {
             console.log("test2-failed");
             throw new ApiError(401, " conversion to ISOS failed");
         }
+
         const endTimeISO = convertToISOTime(end);
         if (endTimeISO) {
             console.log('test3-passed');
@@ -134,62 +132,70 @@ exports.setCriteria = async (req, res) => {
             console.log("test3-failed");
             throw new ApiError(401, " conversion to ISOS failed");
         }
-        console.log(startTimeISO);
-        return Doctor.findById(req.doctor?.id)
-            .then((doctor) => {
-                if (doctor?.availability?.length === 0) {
 
-                    return Doctor.findByIdAndUpdate(
-                        doctor?.id,
-                        {
-                            $push: {
-                                availability: {
-                                    day: day,
-                                    start: startTimeISO,
-                                    end: endTimeISO,
-                                    available: true
-                                }
-                            },
-                            $set: { Max: HowManyPatients }
-                        },
-                        { new: true });
-                } else {
-                    console.log(doctor);
-                    return Doctor.findByIdAndUpdate(
-                        doctor?.id,
-                        {
-                            $set: {
-                                'availability.$[elem].day': day,
-                                'availability.$[elem].start': startTimeISO,
-                                'availability.$[elem].end': endTimeISO,
-                                'availability.$[elem].available': true,
-                                Max: HowManyPatients
-                            }
-                        },
-                        {
-                            arrayFilters: [{ 'elem.available': true }],
-                            new: true
-                        }
-                    )
+        const find_doctor = await Doctor.findById(req.doctor?.id);
+        if (find_doctor) {
+            console.log("test4->passed");
+        } else {
+            console.log("test4->failed");
+            throw new ApiError(403, "could not find the doctor");
+        }
+
+        let array = [];
+        for (let i = 0; i < find_doctor?.availability?.length; i++) {
+            const data = find_doctor?.availability[i].toObject();
+            const keys = Object.keys(data);
+            keys.forEach((key) => {
+                if (key !== '_id' && key !== 'available' && !array.includes(key)) {
+                    return array.push(key);
                 }
-            }).then(async (doctor) => {
-                if (doctor.length === 0) {
-                    throw new ApiError(400, "could not poulate the doctor field");
-                }
-                const savedetail = doctor.save();
-                if (savedetail) {
-                    const job = await agenda.schedule(endTimeISO, 'remove expired availability', { doctorId: doctor._id });
-                    if (!job) {
-                        throw new ApiError(400, "Error occurred with the job");
-                    } else {
-                        console.log(`Scheduled job with ID ${job.attrs._id} for doctor ${doctor._id} at ${endTimeISO}`);
+            });
+        }
+        let Doc_exis_avail;
+        for (let i = 0; i < array.length; i++) {
+            Doc_exis_avail = array?.find((status) => {
+                return status === day;
+            });
+        }
+        if (Doc_exis_avail) {
+            console.log("test5->failed");
+            throw new ApiError(400, "day with same timing already exists ");
+        } else {
+            console.log("test5->passed");
+        }
+
+        const update_doctor_availability = await Doctor.findByIdAndUpdate(
+            find_doctor?.id,
+            {
+                $push: {
+                    availability: {
+                        [day]: {
+                            start: startTimeISO,
+                            end: endTimeISO,
+                        },
+                        available: true
                     }
-                    return res.json(new ApiResponse(200, doctor, "criteria has been set"));
-                } else {
-                    console.log("test4-failed");
-                    throw new ApiError(400, "could not save the criteria");
-                }
-            })
+                },
+                $set: { Max: HowManyPatients }
+            },
+            { new: true });
+        if (update_doctor_availability) {
+            console.log("test6->passed");
+        } else {
+            console.log("test6->failed");
+            throw new ApiError(400, "details could not be updated");
+        }
+
+        const job = await agenda.schedule(endTimeISO, 'remove expired availability', { doctorId: find_doctor._id });
+        if (!job) {
+            console.log("test7->failed");
+            throw new ApiError(400, "Error occurred with the job");
+        } else {
+            console.log("test7->passed");
+            console.log(`Scheduled job with ID ${job.attrs._id} for doctor ${find_doctor._id} at ${endTimeISO}`);
+        }
+        return res.json(new ApiResponse(200, find_doctor, "criteria has been set"));
+
     } catch (error) {
         catchAsyncErrors(error, req, res);
     }
@@ -236,7 +242,7 @@ exports.getDetailOfthePatient = async (req, res) => {
             ]
         );
         if (pipeline.length === 0) {
-           throw new ApiError(403,"could not find any ")
+            throw new ApiError(403, "could not find any ")
         }
 
 

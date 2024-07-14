@@ -6,27 +6,28 @@ const DoctorSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     phone: { type: Number, required: true },
-    profileImage: { type: String },
+    profileImage: { type: String, required: true },
     address: { type: String, required: true },
     specialization: { type: String },
     Max: { type: Number },
-    patientStatus: [{ number: { type: Number, default: 0 } }],
+    patientStatus: [{
+        number: { type: Number, default: 0 },
+    }],
     role: { type: String, required: true },
     availability: [
         {
-            day: { type: String, required: true },
-            start: {
-                type: String, required: true,
-            },
-            end: {
-                type: String, required: true,
-            },
+            monday: { start: { type: String }, end: { type: String }, laterNumber: { number: { type: Number, default: 0 } } },
+            tuesday: { start: { type: String }, end: { type: String }, laterNumber: { number: { type: Number, default: 0 } } },
+            wednesday: { start: { type: String }, end: { type: String }, laterNumber: { number: { type: Number, default: 0 } } },
+            thursday: { start: { type: String }, end: { type: String }, laterNumber: { number: { type: Number, default: 0 } } },
+            friday: { start: { type: String }, end: { type: String }, laterNumber: { number: { type: Number, default: 0 } } },
+            saturday: { start: { type: String }, end: { type: String }, laterNumber: { number: { type: Number, default: 0 } } },
+            sunday: { start: { type: String }, end: { type: String }, laterNumber: { number: { type: Number, default: 0 } } },
             available: { type: Boolean, default: false }
         }
     ],
     refreshToken: { type: String },
 }, { timestamps: true });
-
 
 DoctorSchema.pre('save', function (next) {
     this.patientStatus.forEach((status) => {
@@ -36,7 +37,6 @@ DoctorSchema.pre('save', function (next) {
     });
     next();
 });
-
 DoctorSchema.pre('findOneAndUpdate', function (next) {
     const update = this.getUpdate();
     if (update.$set && update.$set.patientStatus) {
@@ -54,18 +54,14 @@ DoctorSchema.pre('findOneAndUpdate', function (next) {
 DoctorSchema.methods.hashPassword = function (password) {
     return hashPassword.call(this, password);
 };
-
 DoctorSchema.methods.comparePassword = function (password) {
     return comparePassword.call(this, password);
 };
-
 DoctorSchema.methods.generateAccessToken = function () {
     return generateAccessToken.call(this);
 };
-
 DoctorSchema.methods.generateRefreshToken = function () {
     return generateRefreshToken.call(this);
 };
-
 const Doctor = mongoose.model('Doctor', DoctorSchema);
 module.exports = Doctor;
