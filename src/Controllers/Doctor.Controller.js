@@ -12,7 +12,7 @@ const { default: mongoose } = require('mongoose');
 const { asyncHandler } = require('../Utils/AsyncHandler.Utiles');
 
 
-exports.createDoctor = async (req, res) => {
+exports.createDoctor = asyncHandler(async (req, res) => {
     try {
         const { name, email, password, phone, address } = req.body;
         if (name && email && password && phone && address) {
@@ -47,7 +47,7 @@ exports.createDoctor = async (req, res) => {
     } catch (error) {
         catchAsyncErrors(error, req, res);
     }
-};
+});
 exports.loginDoctor = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
     if (email && password) {
@@ -84,7 +84,7 @@ exports.loginDoctor = asyncHandler(async (req, res) => {
 
 
 });
-exports.getDoctorData = async (req, res) => {
+exports.getDoctorData = asyncHandler(async (req, res) => {
     try {
         const doctor = await Doctor.findById(req.doctor.id);
         if (doctor) {
@@ -105,8 +105,8 @@ exports.getDoctorData = async (req, res) => {
     } catch (error) {
         catchAsyncErrors(error, req, res);
     }
-};
-exports.setCriteria = async (req, res) => {
+});
+exports.setCriteria = asyncHandler(async (req, res) => {
     try {
 
         const { HowManyPatients, day, start, end } = req.body;
@@ -115,6 +115,14 @@ exports.setCriteria = async (req, res) => {
         } else {
             console.log("test1-failed");
             throw new ApiError(401, "all fileds are required");
+        }
+        let scheduledTime = moment().day(day).hour(moment(end, 'hh:mm a').hour()).minute(moment(end, 'hh:mm a').minute()).second(0).toString();
+        if (scheduledTime) {
+            console.log("test3->passed");
+        } else {
+            console.log("test5->failed");
+            return res.status(400).json({ error: "could not create timing" });
+
         }
 
         const startTimeISO = convertToISOTime(start);
@@ -141,23 +149,10 @@ exports.setCriteria = async (req, res) => {
             throw new ApiError(403, "could not find the doctor");
         }
 
-        let array = [];
-        for (let i = 0; i < find_doctor?.availability?.length; i++) {
-            const data = find_doctor?.availability[i].toObject();
-            const keys = Object.keys(data);
-            keys.forEach((key) => {
-                if (key !== '_id' && key !== 'available' && !array.includes(key)) {
-                    return array.push(key);
-                }
-            });
-        }
-        let Doc_exis_avail;
-        for (let i = 0; i < array.length; i++) {
-            Doc_exis_avail = array?.find((status) => {
-                return status === day;
-            });
-        }
-        if (Doc_exis_avail) {
+        const array = find_doctor?.availability?.find((status) => {
+            return status.day === day;
+        });
+        if (array || array?.length > 0) {
             console.log("test5->failed");
             throw new ApiError(400, "day with same timing already exists ");
         } else {
@@ -169,10 +164,9 @@ exports.setCriteria = async (req, res) => {
             {
                 $push: {
                     availability: {
-                        [day]: {
-                            start: startTimeISO,
-                            end: endTimeISO,
-                        },
+                        day: day,
+                        start: startTimeISO,
+                        end: endTimeISO,
                         available: true
                     }
                 },
@@ -186,21 +180,21 @@ exports.setCriteria = async (req, res) => {
             throw new ApiError(400, "details could not be updated");
         }
 
-        const job = await agenda.schedule(endTimeISO, 'remove expired availability', { doctorId: find_doctor._id });
+        const job = await agenda.schedule(scheduledTime, 'remove expired availability', { doctorId: find_doctor._id });
         if (!job) {
             console.log("test7->failed");
             throw new ApiError(400, "Error occurred with the job");
         } else {
             console.log("test7->passed");
             console.log(`Scheduled job with ID ${job.attrs._id} for doctor ${find_doctor._id} at ${endTimeISO}`);
+            return res.json(new ApiResponse(200, find_doctor, "criteria has been set"));
         }
-        return res.json(new ApiResponse(200, find_doctor, "criteria has been set"));
 
     } catch (error) {
         catchAsyncErrors(error, req, res);
     }
-};
-exports.getDetailOfthePatient = async (req, res) => {
+});
+exports.getDetailOfthePatient = asyncHandler(async (req, res) => {
     try {
         const pipeline = await Doctor.aggregate(
             [
@@ -253,8 +247,8 @@ exports.getDetailOfthePatient = async (req, res) => {
     } catch (error) {
         catchAsyncErrors(error, req, res);
     }
-};
-exports.manualUpdate = (req, res) => {
+});
+exports.manualUpdate = asyncHandler(async (req, res) => {
     Doctor.findById(req.doctor?.id)
         .then((doctor) => {
             console.log(doctor);
@@ -288,4 +282,4 @@ exports.manualUpdate = (req, res) => {
         .catch((err) => {
             catchAsyncErrors(err, req, res);
         });
-};
+});

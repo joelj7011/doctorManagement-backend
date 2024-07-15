@@ -6,7 +6,6 @@ const DoctorSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     phone: { type: Number, required: true },
-    profileImage: { type: String, required: true },
     address: { type: String, required: true },
     specialization: { type: String },
     Max: { type: Number },
@@ -16,13 +15,10 @@ const DoctorSchema = new mongoose.Schema({
     role: { type: String, required: true },
     availability: [
         {
-            monday: { start: { type: String }, end: { type: String }, laterNumber: { number: { type: Number, default: 0 } } },
-            tuesday: { start: { type: String }, end: { type: String }, laterNumber: { number: { type: Number, default: 0 } } },
-            wednesday: { start: { type: String }, end: { type: String }, laterNumber: { number: { type: Number, default: 0 } } },
-            thursday: { start: { type: String }, end: { type: String }, laterNumber: { number: { type: Number, default: 0 } } },
-            friday: { start: { type: String }, end: { type: String }, laterNumber: { number: { type: Number, default: 0 } } },
-            saturday: { start: { type: String }, end: { type: String }, laterNumber: { number: { type: Number, default: 0 } } },
-            sunday: { start: { type: String }, end: { type: String }, laterNumber: { number: { type: Number, default: 0 } } },
+            day: { type: String, required: true },
+            start: { type: String, required: true },
+            end: { type: String, required: true },
+            laterNumber: { number: { type: Number, default: 0 } },
             available: { type: Boolean, default: false }
         }
     ],

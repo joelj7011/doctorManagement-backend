@@ -145,33 +145,43 @@ exports.fetchAllDoctors = asyncHandler(async (req, res) => {
 });
 exports.BookAppointment = asyncHandler(async (req, res) => {
 
-    const patient = await findUser(null, null, req.user.id);
-    if (patient) {
+    const find_Patient = await findUser(null, null, req.user.id);
+    if (find_Patient) {
         console.log("test1-passed");
     } else {
         console.log("test1-failed");
         return res.status(400).json({ error: "no user found" });
     }
 
-    const appointmentExists = patient.appointmentStatus.find(status => status.appointment);
-    if (appointmentExists) {
-        console.log("test2-filed");
+    const find_Doctor = await Doctor.findById(req.params.id);
+    if (find_Doctor) {
+        console.log("test2->passed");
+    } else {
+        console.log("test2->failed");
+        throw new ApiError(400, "no doctor found");
+    }
+    console.log(find_Patient?.appointmentStatus)
+
+    const now = new Date();
+    const time = now.toISOString().slice(0, -14).trim(" ");
+    const currentTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const currentDay = now.toLocaleDateString([], { weekday: 'long' });
+    console.log(currentDay);
+    const appointment_Exists = [];
+    for (let i = 0; i < find_Patient?.appointmentStatus?.length; i++) {
+        find_Patient?.appointmentStatus[i]?.patient?.find((status) => { return appointment_Exists.push(status.day === currentDay) });
+    }
+    console.log(appointment_Exists);
+    if (appointment_Exists) {
+        console.log("test3-filed");
         throw new ApiError(400, "You already have an appointment booked")
     } else {
-        console.log("test2-passed")
-    }
-
-    const doctor = await Doctor.findById(req.params.id);
-    if (doctor) {
-        console.log("test3-passed");
-    } else {
-        console.log("test3-failed");
-        throw new ApiError(400, "no doctor found");
+        console.log("test3-passed")
     }
 
     const appointment = await Appontment.create({
-        doctor: doctor._id,
-        patient: patient._id
+        doctor: find_Doctor._id,
+        patient: find_Patient._id
     });
     if (appointment) {
         console.log("test4->passed");
@@ -180,81 +190,84 @@ exports.BookAppointment = asyncHandler(async (req, res) => {
         throw new ApiError(400, "appointment could not be made");
     }
 
-    const now = new Date();
-    const time = now.toISOString().slice(0, -14).trim(" ");
-    const currentTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const currentDay = now.toLocaleDateString([], { weekday: 'long' });
 
-    return Doctor.findByIdAndUpdate(
-        doctor?.id,
+
+    const find_and_update_doc = await Doctor.findByIdAndUpdate(
+        find_Patient?.id,
         { $inc: { 'patientStatus.0.number': 1 } },
         { new: true }
-    ).then((updatedDoctor) => {
+    );
+    if (find_and_update_doc) {
+        console.log("test5->passed");
+    } else {
+        console.log("test5->failed");
+        return res.status(404).json({ error: "doctor could not be found" })
+    }
 
-        const filternumber = updatedDoctor.patientStatus.map((status) => {
-            return status?.number;
-        })[0];
+    const filternumber = updatedDoctor.patientStatus.map((status) => {
+        return status?.number;
+    })[0];
+    if (filterdetail) {
+        console.log("test6->passed");
+    } else {
+        console.log("test6->failed");
+        return res.status(400).json({ error: "could not filter the number" });
+    }
 
-        if (!updatedDoctor) {
-            throw new ApiError(400, "Failed to update doctor's number of patients");
-        }
-
-        if (patient.appointmentStatus.length === 0) {
-            return User.findByIdAndUpdate(
-                patient._id,
-                {
-                    $push: {
-                        appointmentStatus: {
-                            appointment: true,
-                            patient: {
-                                patientnumber: filternumber,
-                                time: currentTime,
-                                day: currentDay,
-                                date: time
-                            }
-                        },
-                        history: {
-                            doctorId: updatedDoctor?._id,
+    let find_user_and_update;
+    if (find_Patient.appointmentStatus.length === 0) {
+        find_user_and_update = await User.findByIdAndUpdate(
+            patient._id,
+            {
+                $push: {
+                    appointmentStatus: {
+                        appointment: true,
+                        patient: {
+                            patientnumber: filternumber,
+                            time: currentTime,
+                            day: currentDay,
                             date: time
                         }
-                    }
-                },
-                { new: true }
-            );
-        } else {
-            return User.findByIdAndUpdate(
-                patient._id,
-                {
-                    $set: {
-                        'appointmentStatus.$[elem].appointment': true,
-                        'appointmentStatus.$[elem].patient.patientnumber': filternumber,
-                        'appointmentStatus.$[elem].patient.time': currentTime,
-                        'appointmentStatus.$[elem].patient.day': currentDay,
-                        'appointmentStatus.$[elem].patient.date': time,
-
                     },
-                    $push: {
-                        history: {
-                            doctorId: updatedDoctor?._id,
-                            date: time
-                        }
+                    history: {
+                        doctorId: updatedDoctor?._id,
+                        date: time
                     }
-                },
-                {
-                    arrayFilters: [
-                        { 'elem.appointment': false }
-                    ],
-                    new: true
                 }
-            );
-        }
-    }).then(async (patient) => {
+            },
+            { new: true }
+        );
+    } else {
+        find_user_and_update = await User.findByIdAndUpdate(
+            patient._id,
+            {
+                $set: {
+                    'appointmentStatus.$[elem].appointment': true,
+                    'appointmentStatus.$[elem].patient.patientnumber': filternumber,
+                    'appointmentStatus.$[elem].patient.time': currentTime,
+                    'appointmentStatus.$[elem].patient.day': currentDay,
+                    'appointmentStatus.$[elem].patient.date': time,
+
+                },
+                $push: {
+                    history: {
+                        doctorId: updatedDoctor?._id,
+                        date: time
+                    }
+                }
+            },
+            {
+                arrayFilters: [
+                    { 'elem.appointment': false }
+                ],
+                new: true
+            }
+        );
+    }
+    if (find_user_and_update) {
         const filterd = filterdetail(patient);
         return res.json(new ApiResponse(200, filterd, "appointment was made"));
-
-    });
-
-
+    }
 });
 exports.BookAppointmentManually = asyncHandler(async (req, res) => {
 
@@ -267,9 +280,9 @@ exports.BookAppointmentManually = asyncHandler(async (req, res) => {
         return res.status(400).json({ error: "all filds are required" });
     }
 
-    let scheduledTime = moment().day(day).hour(moment(time, 'hh:mm a').hour()).minute(moment(time, 'hh:mm a').minute()).second(0);
-    const time_String = scheduledTime.toString();
-    const now = new moment();
+    // let scheduledTime = moment().day(day).hour(moment(time, 'hh:mm a').hour()).minute(moment(time, 'hh:mm a').minute()).second(0);
+    // const time_String = scheduledTime.toString();
+    // const now = new moment();
 
     const Isos_time = convertToISOTime(time)
     if (convertToISOTime) {
@@ -296,7 +309,7 @@ exports.BookAppointmentManually = asyncHandler(async (req, res) => {
         return res.status(403).json({ error: "could not find the doctor" });
     }
 
-    const existing_Appointment = find_patient.appointmentStatus.find((status) => {
+    const existing_Appointment = find_patient?.appointmentStatus?.find((status) => {
         return status.appointment;
     });
     if (existing_Appointment) {
@@ -305,6 +318,10 @@ exports.BookAppointmentManually = asyncHandler(async (req, res) => {
         console.log("test3->failed");
         return res.status(100).json({ error: "you already have an appointment" });
     }
+
+    const look_for_same_entry = find_patient?.appointmentStatus?.find((status) => {
+        return status.day && status.time
+    })
 
     const exis_Appoint_with_same_date_time = await Appontment.find({
         doctor: find_doctor?.id,
@@ -323,6 +340,57 @@ exports.BookAppointmentManually = asyncHandler(async (req, res) => {
         console.log("test6->passed");
     }
 
+    const update_doctor_availability_laterpatient = await Doctor.findByIdAndUpdate(
+        find_doctor._id,
+        { $inc: { 'availability.$[elem].laterNumber.number': 1 } },
+        { arrayFilters: [{ 'elem.day': day }], new: true }
+    );
+    if (update_doctor_availability_laterpatient) {
+        console.log(update_doctor_availability_laterpatient)
+        console.log("test7->passed");
+    } else {
+        console.log("test7->failed");
+        return res.status(500).json({ error: "could not incriment+" })
+    }
+
+    const extract_later_patient_number = find_doctor?.availability?.map((status) => {
+        return status.laterNumber.number;
+    }).filter(Boolean);
+    if (extract_later_patient_number) {
+        console.log("->", extract_later_patient_number);
+        console.log("test8->passed");
+    } else {
+        console.log("test8->failed");
+        return res.status(400), json({ errro: "failed to extract the patient number" })
+    }
+
+
+    const save_Date = now.toISOString().slice(0, -14).trim(" ");
+    const update_Patient_status = await User.findByIdAndUpdate(
+        find_patient?._id,
+        {
+            $push: {
+                appointmentStatus: {
+                    appointment: true,
+                    patient: {
+                        patientnumber: extract_later_patient_number[0],
+                        time: Isos_time,
+                        day: day,
+                        date: save_Date
+                    }
+                },
+                history: find_doctor?._id,
+
+            }
+        }
+    );
+    if (update_Patient_status) {
+        console.log("test10->passed");
+    } else {
+        console.log("test10->failed");
+        return res.status(400).json({ errro: "could not  update the patient status" });
+    }
+
     const create_appointment = await Appontment.create({
         doctor: find_doctor?.id,
         patient: find_patient?.id,
@@ -332,60 +400,10 @@ exports.BookAppointmentManually = asyncHandler(async (req, res) => {
         }]
     });
     if (create_appointment) {
-        console.log("test7->passed");
-    } else {
-        console.log("test7->failed");
-        return res.status(100).json({ error: "could not create appointment" });
-    }
-
-    const update_doctor_availability_laterpatient = await Doctor.findByIdAndUpdate(
-        find_doctor._id,
-        {
-            $inc: {
-                [`availability.${day}.laterNumber.number`]: 1
-            }
-        },
-        { new: true }
-    );
-    if (update_doctor_availability_laterpatient) {
-        console.log("test8->passed");
-    } else {
-        console.log("test8->failed");
-        return res.status(500).json({ error: "could not incriment+" })
-    }
-
-    const extract_later_patient_number = find_doctor.map((status) => {
-        return status[day].laterNumber.number;
-    }).filter(Boolean);
-    if (extract_later_patient_number) {
         console.log("test9->passed");
     } else {
         console.log("test9->failed");
-        return res.status(400), json({ errro: "failed to extract the patient number" })
-    }
-
-    const update_Patient_status = await User.findByIdAndUpdate(
-        find_patient?._id,
-        {
-            $push: {
-                appointmentStatus: {
-                    appointment: true,
-                    patient: {
-                        patientnumber: extract_later_patient_number,
-                        time: Isos_time,
-                        day: day
-                    }
-                },
-                history: find_doctor?._id,
-                date: now
-            }
-        }
-    );
-    if (update_Patient_status) {
-        console.log("test10->passed");
-    } else {
-        console.log("test1->failed");
-        return res.status(400).json({ errro: "could not  update the patient status" });
+        return res.status(100).json({ error: "could not create appointment" });
     }
 
     const send_Notifi_to_doc = await Notification.create({
@@ -401,7 +419,6 @@ exports.BookAppointmentManually = asyncHandler(async (req, res) => {
     if (create_appointment && send_Notifi_to_doc) {
         return res.status(200).json(new ApiResponse(200, `appointment with dr${find_doctor?.name} has been made on ${find_patient?.appointmentStatus?.patient?.day, find_patient?.appointmentStatus?.patient?.time}`))
     }
-
 });
 exports.CancleAppointment = asyncHandler(async (req, res) => {
 

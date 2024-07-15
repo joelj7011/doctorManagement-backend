@@ -1,7 +1,6 @@
 const { Agenda } = require("agenda");
 const Doctor = require("../Models/Doctor.Model");
 const ApiError = require("../Utils/Apierror.Utils");
-const User = require("../Models/User.Model");
 
 
 const agenda = new Agenda({ db: { address: 'mongodb://localhost:27017/doctors' }, debug: true });
@@ -58,22 +57,24 @@ agenda.define(
         }
     });
 
-const agenda_delete_scheduled_appointments = new Agenda({ db: { address: 'mongodb://localhost:27017/doctors' }, debug: true });
-agenda_delete_scheduled_appointments?.on('ready', () => console.log('Agenda started successfully'))
-agenda_delete_scheduled_appointments?.on('err', () => console.log('Agenda connection error:', err));
+// const agenda_delete_scheduled_appointments = new Agenda({ db: { address: 'mongodb://localhost:27017/doctors' }, debug: true });
+// agenda_delete_scheduled_appointments?.on('ready', () => console.log('Agenda started successfully'))
+// agenda_delete_scheduled_appointments?.on('err', () => console.log('Agenda connection error:', err));
 
-agenda_delete_scheduled_appointments.define(
-    'remove_appointment_after_expiery', async (job) => {
-        try {
-            const { doctorId } = job.attrs.data;
-        } catch (error) {
+// agenda_delete_scheduled_appointments.define(
+//     'remove_appointment_after_expiery', async (job) => {
+//         try {
+       
+//         } catch (error) {
 
-        }
-    }
-)
+//         }
+//     }
+// )
     (async () => {
         await agenda.start();
         console.log('Agenda  started');
+        // await agenda_delete_scheduled_appointments.start();
+        // console.log('agenda_delete_scheduled_appointments  started');
     })();
 
 
