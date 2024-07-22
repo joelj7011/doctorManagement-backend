@@ -10,12 +10,12 @@ const { GenerateTokens } = require("../Utils/SendToken.utils");
 const { agenda } = require('../ScheduleTasks/agend.ScheduleTasks');
 const { default: mongoose } = require('mongoose');
 const { asyncHandler } = require('../Utils/AsyncHandler.Utiles');
-
+const { Day_time_managment } = require('./Utility.Controller');
 
 exports.createDoctor = asyncHandler(async (req, res) => {
     try {
-        const { name, email, password, phone, address } = req.body;
-        if (name && email && password && phone && address) {
+        const { name, email, password, phone, address, role } = req.body;
+        if (name && email && password && phone && address && role) {
             console.log("test1-passed");
         } else {
             console.log("test1-failed");
@@ -116,25 +116,28 @@ exports.setCriteria = asyncHandler(async (req, res) => {
             console.log("test1-failed");
             throw new ApiError(401, "all fileds are required");
         }
-        let scheduledTime = moment().day(day).hour(moment(end, 'hh:mm a').hour()).minute(moment(end, 'hh:mm a').minute()).second(0).toString();
-        if (scheduledTime) {
-            console.log("test3->passed");
-        } else {
-            console.log("test5->failed");
-            return res.status(400).json({ error: "could not create timing" });
 
+        const scheduledTime = Day_time_managment(day, end);
+        if (scheduledTime) {
+            console.log(scheduledTime);
+            console.log("test2->passed");
+        } else {
+            console.log("test2->failed");
+            return res.status(400), json({ error: "function failed to produce result" });
         }
 
-        const startTimeISO = convertToISOTime(start);
+        const startTimeISO = convertToISOTime(start).slice(11, -4);
         if (startTimeISO) {
+            console.log(startTimeISO);
             console.log("test2-passed");
         } else {
             console.log("test2-failed");
             throw new ApiError(401, " conversion to ISOS failed");
         }
 
-        const endTimeISO = convertToISOTime(end);
+        const endTimeISO = convertToISOTime(end).slice(11, -4);
         if (endTimeISO) {
+            console.log(endTimeISO);
             console.log('test3-passed');
         } else {
             console.log("test3-failed");

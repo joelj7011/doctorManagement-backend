@@ -1,9 +1,10 @@
 const router = require('express').Router();
 const { fetchAllDoctors, BookAppointment, CancleAppointment, createUser, login, getuserData, History, BookAppointmentManually } = require('../Controllers/Patient.Controller');
-const { verifyAuthority, authentication } = require('../Middleware/auth.Middleware');
+const { authentication } = require('../Middleware/auth.Middleware');
 const { body } = require('express-validator');
+const upload = require('../Middleware/Multer.Middleware');
 
-router.post('/createuser', [
+router.post('/createuser', upload.single("profileImage"), [
     body('name').custom((value) => {
 
         if (!value || value.trim().length <= 3) {
@@ -50,9 +51,15 @@ router.get('/login', [
     })
 ], login);
 router.get('/getData', authentication, getuserData);
-router.get('/fetchalldoctors', authentication, verifyAuthority, fetchAllDoctors);
-router.post('/makeappointment/:id', authentication, verifyAuthority, BookAppointment);
-router.post('/cancleappointment/:id', authentication, verifyAuthority, CancleAppointment);
-router.get('/history', authentication, verifyAuthority, History);
-router.post('/makeappointment_manually/:id', authentication, verifyAuthority, BookAppointmentManually)
+router.get('/fetchalldoctors', authentication, fetchAllDoctors);
+router.post('/makeappointment/:id', authentication, (req, res, next) => {
+    req.isBookingAppointment = true;
+    next();
+}, BookAppointment);
+router.post('/cancleappointment/:id', authentication, CancleAppointment);
+router.get('/history', authentication, History);
+router.post('/makeappointment_manually/:id', authentication, (req, res, next) => {
+    req.isBookingAppointment = true;
+    next();
+}, BookAppointmentManually)
 module.exports = router;

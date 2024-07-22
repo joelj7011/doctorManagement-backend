@@ -10,7 +10,9 @@ const User = require("../Models/User.Model");
 exports.authentication = asyncHandler(async (req, res, next) => {
 
     console.log("|authentication starts|");
+
     const token = req.cookies?.accessToken || req.headers.authorization?.replace("Bearer ", "");
+    console.log(token)
     if (token) {
         console.log("test1-token-passed");
 
@@ -32,57 +34,16 @@ exports.authentication = asyncHandler(async (req, res, next) => {
         console.log("test3-token-passed");
     } else {
         console.log("test3-token-failed");
-        return res.status(400).json({ error: "no user found" });
+        return res.status(400).json({ error: "you need to be logged in" });
     }
 
     data.role === "doctor" ? req.doctor = data : req.user = data;
+
+    console.log("|authentication end|");
     next();
 
 });
-exports.verifyAuthority = asyncHandler(async (req, res, next) => {
-    console.log("verifying authority.....");
 
-    if (req.user.role === "doctor") {
-        return res
-            .status(401)
-            .json({ success: false, message: "Unauthorized To Acess This Resource" });
-    } else if (req.params.id) {
-        const findDoctor = await Doctor.findById(req.params.id);
-        if (findDoctor) {
-            console.log("test1->passed");
-        } else {
-            console.log("test1->failed");
-            throw new ApiError(403, "doctor not found");
-        }
-
-        const array = Object.entries(findDoctor);
-        if (array) {
-            console.log("test2->passed");
-        } else {
-            console.log("test2->failed");
-        }
-
-        const filterdoctor = array.map((status) => {
-            return status[1].availability
-        }).filter(Boolean);
-        if (filterdoctor) {
-            console.log("test3->passed");
-        } else {
-            console.log("test3->failed");
-            return res.status(403).json({ error: "could not find the availability in dcotor model" })
-        }
-
-        const availablelength = filterdoctor[0];
-        if (availablelength.length === 0) {
-            return res
-                .status(400)
-                .json({ success: false, meassage: "doctor is not available" })
-        }
-    } else {
-        console.log("verify-authority-passed");
-    }
-    next();
-});
 exports.verifyAuthorityUser = asyncHandler(async (req, res, next) => {
     if (req.doctor.role === "user") {
         return res
