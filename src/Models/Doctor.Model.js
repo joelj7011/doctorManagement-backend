@@ -26,27 +26,35 @@ const DoctorSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 DoctorSchema.pre('save', function (next) {
-    this.patientStatus.forEach((status) => {
-        if (status.number < 0) {
-            status.number = 0;
+    this.availability.forEach((status) => {
+        if (status.laterNumber.number < 0) {
+            status.laterNumber.number = 0;
         }
     });
     next();
 });
 DoctorSchema.pre('findOneAndUpdate', function (next) {
+    const filter = this.getFilter();
     const update = this.getUpdate();
-    if (update.$set && update.$set.patientStatus) {
-        update.$set.patientStatus.forEach((status) => {
-            if (status.number < 0) {
-                status.number = 0;
+    const options = this.getOptions();
+
+    console.log('Filter:', filter);
+    console.log('Update:', update);
+    console.log('Options:', options);
+
+    if (update.$set && update.$set.availability) {
+        update.$set.availability.forEach((status) => {
+            if (status.laterNumber.number < 0) {
+                status.laterNumber.number = 0;
             }
         });
     }
-    if (update.$inc && update.$inc['patientStatus.0.number'] < 0) {
-        update.$inc['patientStatus.0.number'] = 0;
+    if (update.$inc && update.$inc['availability.0.laterNumber.number'] < 0) {
+        update.$inc['availability.0.laterNumber.number'] = 0;
     }
     next();
 });
+
 DoctorSchema.methods.hashPassword = function (password) {
     return hashPassword.call(this, password);
 };

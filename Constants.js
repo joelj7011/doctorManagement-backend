@@ -1,12 +1,15 @@
+const redis = require('redis');
+
 exports.DB_NAME = "DoctorManagment"
+
 exports.options = {
     httpOnly: true,
     secure: false
-}
+};
 exports.corsOptions = {
     origin: " http://localhost:3000",
     credentials: true,
-}
+};
 exports.filterdetail = function (data) {
     if (Array.isArray(data) && data.length > 0) {
         return data.map((item) => {
@@ -33,4 +36,7 @@ exports.convertToISOTime = function (time12h) {
     const isoString = date.toISOString().slice(0, -1);
     console.log("->", isoString);
     return isoString;
-}
+};
+exports.client = redis.createClient({
+    url: 'redis://127.0.0.1:6379'
+});

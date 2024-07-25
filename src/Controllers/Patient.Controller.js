@@ -195,10 +195,9 @@ exports.BookAppointment = asyncHandler(async (req, res, next) => {
             doctor: find_Doctor._id,
             patient: find_Patient._id,
             laterPatient: [{
-                day: currentTime,
-                time: currentDay
+                day: currentDay,
+                time: currentTime
             }]
-
         });
         if (appointment) {
             console.log("test4->passed");
@@ -218,6 +217,7 @@ exports.BookAppointment = asyncHandler(async (req, res, next) => {
             console.log("test5->failed");
             return res.status(404).json({ error: "doctor could not be found" })
         }
+
         let filterNumber = find_and_update_doc?.availability.find((status) => {
             return status?.day === currentDay;
         });
@@ -441,20 +441,13 @@ exports.CancleAppointment = asyncHandler(async (req, res, next) => {
             return res.status(400).json({ error: "No doctor found" });
         }
 
-        const { day, time } = find_appointmentn?.laterPatient[0];
-        if (typeof day && time === 'string') {
-            console.log("test3->passed");
-        } else {
-            console.log("test3->failed");
-            return res.status(400).json({ error: "day and time not available" });
-        }
-        console.log(day);
+        const { day, time } = await find_appointmentn?.laterPatient[0];
         await verifyAuthority(req, res, next, find_Doctor?.id, day);
 
-
-        const match_day_time_with_appoint = find_Patient?.appointmentStatus[1]?.patient.find((status) => {
+        const match_day_time_with_appoint = find_Patient?.appointmentStatus[0]?.patient.find((status) => {
             return status.day === day && status.time === time;
         });
+        console.log(match_day_time_with_appoint);
         if (match_day_time_with_appoint) {
             console.log("test4->passed");
             console.log(match_day_time_with_appoint)
@@ -463,83 +456,55 @@ exports.CancleAppointment = asyncHandler(async (req, res, next) => {
             return res.status(403).json({ error: "could not find any document as per the criteria " });
         }
 
-        const decrement_Patient_number = await Doctor.findByIdAndUpdate(
-            { _id: find_Patient?._id, "appointmentStatus.patient.day": day, "appointmentStatus.patient.time": time },
+        if (!find_Doctor || !mongoose.Types.ObjectId.isValid(find_Doctor._id)) {
+            return res.status(400).json({ error: "Patient not found or invalid ID" });
+        }
+        const decrement_Doctor_number = await Doctor.updateOne(
+            { _id: find_Doctor._id },
             {
                 $inc: {
-                    'appointmentStatus.$[appointment].patient.$[patient].patientnumber': -1
-                },
-                $set: {
-                    'appointmentStatus.$[appointment].appointment': false
+                    'availability.$[elem].laterNumber.number': -1
                 }
             },
             {
                 arrayFilters: [
-                    { 'appointment.appointment': true },
-                    { 'patient.day': day, 'patient.time': time }
+                    { 'elem.available': true }
                 ],
                 new: true
             }
         );
-
-        console.log(decrement_Patient_number);
-        if (decrement_Patient_number) {
+        if (decrement_Doctor_number.modifiedCount > 0) {
             console.log("test4->passed");
         } else {
             console.log("test4->failed");
-            return res.status(403).json({ error: "could not decriment" })
+            return res.status(403).json({ error: "could not decrement" });
         }
 
-        // const save_data = await find_Doctor.save()
-        // if (save_data) {
-        //     console.log("test5->passed");
-        // } else {
-        //     console.log("test5->failed");
-        // }
+        const remove_User_Number = await User.findByIdAndUpdate(
+            find_appointmentn.patient,
+            {
+                $set: { 'appointmentStatus.$[elem].appointment': false },
+                $unset: { 'appointmentStatus.$[elem].patient': "" }
+            },
+            { arrayFilters: [{ 'elem.appointment': true }], new: true }
+        )
+        if (remove_User_Number) {
+            console.log("test7->passed");
+        } else {
+            console.log("test7->failed");
+            throw new ApiError(400, 'could not update the user');
+        }
 
-        // const find_Appointment_with_doc_pat = await Appontment.find({ doctor: find_Doctor?.id, patient: find_Patient?.id });
-        // console.log(find_Appointment_with_doc_pat)
-        // if (find_Appointment_with_doc_pat) {
-        //     console.log("test6->passed")
-        // } else {
-        //     console.log("test6->failed");
-        //     throw new ApiError(400, "could not find the appointment associated with the id`s");
-        // }
-
-        // const remove_User_Number = await User.findByIdAndUpdate(
-        //     find_Appointment_with_doc_pat.patient,
-        //     {
-        //         $set: { 'appointmentStatus.$[elem].appointment': false },
-        //         $unset: { 'appointmentStatus.$[elem].patient': "" }
-        //     },
-        //     { arrayFilters: [{ 'elem.appointment': true }], new: true }
-        // )
-        // if (remove_User_Number) {
-        //     console.log("test7->passed");
-        // } else {
-        //     console.log("test7->failed");
-        //     throw new ApiError(400, 'could not update the user');
-        // }
-
-        // let delete_The_Appointment
-        // console.log(find_Appointment_with_doc_pat.length)
-        // for (let i = 0; i < find_Appointment_with_doc_pat?.length; i++) {
-        //     let data = find_Appointment_with_doc_pat[i]._id
-        //     delete_The_Appointment = await Appontment.findByIdAndDelete(data)
-        //     if (delete_The_Appointment) {
-        //         console.log("test8->passed");
-        //     } else {
-        //         console.log("test8->failed");
-        //         throw new ApiError(400, "could not delete the appointment");
-        //     }
-        // }
-        // if (delete_The_Appointment) {
-        //     console.log("all thest passed")
-        //     return res.status(200).json(new ApiResponse(200, delete_The_Appointment, "appointment deleted"));
-        // } else {
-        //     throw new ApiError(403, " error occured");
-        // }
+        const delete_The_Appointment = await Appontment.findByIdAndDelete(find_appointmentn?._id);
+        if (delete_The_Appointment) {
+            console.log("test8->all test passed");
+            return res.status(200).json(new ApiResponse(200, delete_The_Appointment, "appointment deleted"));
+        } else {
+            console.log("test8->failed");
+            throw new ApiError(400, "could not delete the appointment");
+        }
     }
+
     const with__pipeline = async () => {
         const pipeline = await Doctor.aggregate([
             {
@@ -600,7 +565,8 @@ exports.CancleAppointment = asyncHandler(async (req, res, next) => {
         return res.status(200).json(new ApiResponse(200, { data: pipeline }, "pipeline"));
     };
     without__pipeline();
-});
+}
+);
 exports.History = asyncHandler(async (req, res) => {
     const without__pipeline = async () => {
         const patient = await User.findById(req.user?.id);

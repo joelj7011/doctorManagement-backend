@@ -43,7 +43,6 @@ exports.authentication = asyncHandler(async (req, res, next) => {
     next();
 
 });
-
 exports.verifyAuthorityUser = asyncHandler(async (req, res, next) => {
     if (req.doctor.role === "user") {
         return res
