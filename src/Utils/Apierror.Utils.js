@@ -8,7 +8,6 @@ class ApiError extends Error {
     this.stack = stack;
     this.data = null;
     this.success = false;
-
     if (stack) {
       this.stack = stack;
     } else {

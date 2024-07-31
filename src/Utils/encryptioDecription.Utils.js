@@ -1,55 +1,82 @@
 const crypto = require('crypto');
 const ApiError = require('./Apierror.Utils');
-const { sensitiveHeaders } = require('http2');
-const algorithm = 'aes-256-cbc';
-const key = crypto.randomBytes(32);
-const iv = crypto.randomBytes(16);
+const { getLineNumber } = require('./ErrorAtLine');
 
-exports.encrypt = async (data) => {
+const algorithm = 'aes-256-cbc';
+const key = Buffer.from('this_is_a_32_character_long_key_', 'utf-8')
+
+exports.encrypt = async (data, res) => {
     try {
         console.log("encryption started.......");
-        const cipher = crypto = crypto.createCipheriv(algorithm, key, iv);
-        if (!crypto) {
-            throw new ApiError(400, "could not create cipher:", __filename);
+        const iv = crypto.randomBytes(16);
+        if (!iv) {
+            console.log("test1->failed");
+            return res.status(403).Jaon({ error: "could not genearte a iv ", details: { location: __filename, alLine: getLineNumber() } });
+        } else {
+            console.log("test1->passed");
         }
+
+        const cipher = crypto.createCipheriv(algorithm, key, iv);
+        if (!cipher) {
+            return res.status(400).json({ error: "could not create cipher:", details: { location: __filename, alLine: getLineNumber() } })
+        } else {
+            console.log("test2->passed");
+        }
+
         let encrypted = cipher.update(data, 'utf-8', 'hex');
         if (!encrypted) {
-            throw new ApiError(400, "could not enctypt:", __filename)
+            return res.status(400).json({ error: "could not encrypt:", details: { location: __filename, alLine: getLineNumber() } })
+        } else {
+            console.log("test3->passed");
         }
-        encrypted = encrypted + cipher.final('hex');
-        if (!encrypted) {
-            throw new ApiError(400, "could process the finalization");
-        }
-        const Sensativedata = { iv: iv.toString('hex'), encrypredDate: encrypted };
-        if (!Sensativedata) {
-            throw new ApiError(400, "could not create the sensitivedata");
-        }
-        console.log("encryption ended.......");
-        return Sensativedata;
-    } catch (error) {
-        throw new ApiError(403, `error occured:${error} at:`, __filename);
-    }
 
+        encrypted += cipher.final('hex');
+        if (!encrypted) {
+            return res.status(400).json({ error: "could not process the finalization at :", details: { location: __filename, alLine: getLineNumber() } })
+        } else {
+            console.log("test4->passed");
+        }
+
+        const sensitiveData = { iv: iv.toString('hex'), encryptedData: encrypted };
+        if (!sensitiveData) {
+            return res.status(400).json({ error: "could not create the sensitiveData" })
+        } else {
+            console.log("encryption ended.......");
+            return sensitiveData;
+        }
+    } catch (error) {
+        return res.status(403).json({ error: `error occurred: ${error}`, details: { location: __filename, alLine: getLineNumber() } })
+    }
 };
-exports.decrypt = (data) => {
+
+exports.decrypt = (data, iv, res) => {
     try {
         console.log("decryption started.......");
         const decipher = crypto.createDecipheriv(algorithm, key, Buffer.from(iv, 'hex'));
         if (!decipher) {
-            throw new ApiError(400, "could not create decipher at :", __filename);
+            return res.status(400).json({ error: "could not create decipher at :", details: { location: __filename, alLine: getLineNumber() } })
+        } else {
+            console.log("test1->passed");
         }
+
+
         let decrypted = decipher.update(data, 'hex', 'utf-8');
         if (!decrypted) {
-            throw new ApiError(400, "could not decrypt:", __filename)
+            return res.status(400).json({ error: "could not decrypt:", details: { location: __filename, alLine: getLineNumber() } })
+        } else {
+            console.log("test2->passed");
         }
-        decrypted = decrypted + decipher.final('utf8');
+
+        decrypted += decipher.final('utf8');
         if (!decrypted) {
-            throw new ApiError(400, "could process the finalization at:", __filename);
+            return res.status(400).json({ error: "could process the finalization", details: { location: __filename, alLine: getLineNumber() } });
+        } else {
+            console.log("decryption ended.......");
+            return decrypted;
         }
-        console.log("decryption ended.......");
-        return decrypted;
+
     } catch (error) {
-        throw new ApiError(403, `error occured:${error} at:`, __filename);
+        return res.status(403).json({ error: "error occured", details: { location: __filename, alLine: getLineNumber() } })
     }
 
 };

@@ -3,6 +3,7 @@ const { fetchAllDoctors, BookAppointment, CancleAppointment, createUser, login, 
 const { authentication } = require('../Middleware/auth.Middleware');
 const { body } = require('express-validator');
 const upload = require('../Middleware/Multer.Middleware');
+const { cacheMiddlWare, setCahe } = require('../Middleware/Caching.Middleware');
 
 router.post('/createuser', upload.single("profileImage"), [
     body('name').custom((value) => {
@@ -50,7 +51,7 @@ router.get('/login', [
         }
     })
 ], login);
-router.get('/getData', authentication, getuserData);
+router.get('/getData', authentication, cacheMiddlWare, setCahe, getuserData);
 router.get('/fetchalldoctors', authentication, fetchAllDoctors);
 router.post('/makeappointment/:id', authentication, (req, res, next) => {
     req.isBookingAppointment = true;

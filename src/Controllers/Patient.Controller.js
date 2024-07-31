@@ -13,6 +13,7 @@ const { default: mongoose } = require('mongoose');
 const Notification = require('../Models/Notification.Model');
 const moment = require('moment');
 const { verifyAuthority } = require('../Utils/VerfiyAuthority');
+const { getLineNumber } = require('../Utils/ErrorAtLine');
 
 exports.createUser = asyncHandler(async (req, res) => {
     try {
@@ -47,6 +48,8 @@ exports.createUser = asyncHandler(async (req, res) => {
 });
 exports.login = asyncHandler(async (req, res) => {
 
+
+    const finduser = findUser(req.user?.email, null, null)
     const errors = validationResult(req);
     if (!errors) {
         return res.status(400).send(errors);
@@ -59,9 +62,6 @@ exports.login = asyncHandler(async (req, res) => {
         console.log("test1-failed");
         throw new ApiError(400, "all fields are required");
     }
-    const day = "saturday";
-    const time = "05:OO PM"
-
 
     const user = await findUser(email, null, null);
     if (user) {
@@ -88,27 +88,23 @@ exports.login = asyncHandler(async (req, res) => {
 
     return res.status(200).cookie('accessToken', accessToken, options).cookie('refreshToken', refreshToken, options).json(new ApiResponse(200, { data: user, accessToken, refreshToken }, "user logged in"));
 });
-exports.getuserData = asyncHandler(async (req, res) => {
-    try {
-        const user = await User.findById(req.user?.id);
-        if (user) {
-            console.log("test-1-passed");
-        } else {
-            console.log("test2-failed");
-            return res.status(400).json({ error: "user data was not recived" });
-        }
+exports.getuserData = asyncHandler(async (req, res, next) => {
+    const user = await User.findById(req.user?.id);
+    if (user) {
+        console.log("test-1-passed");
+    } else {
+        console.log("test2-failed");
+        return res.status(400).json({ error: "user data was not recived", details: { location: __filename, Line: getLineNumber() } });
+    }
 
-        const filterdetails = filterdetail(user);
-        if (filterdetails) {
-            console.log("test1->passed");
-            return res.status(200).json(new ApiResponse(200, filterdetails, "user fetched successfully"));
-        } else {
-            console.log("test2->failed");
-            return res.status(500).json({ error: "could not fetch the user" });
-        }
+    const filterdetails = filterdetail(user);
+    if (filterdetails) {
+        console.log("test1->passed");
+        return res.status(200).json(new ApiResponse(200, filterdetails, "user fetched successfully",));
 
-    } catch (error) {
-        catchAsyncErrors(error, req, res);
+    } else {
+        console.log("test1->failed");
+        return res.status(500).json({ error: "could not fetch the user", details: { location: __filename, Line: getLineNumber() } });
     }
 });
 exports.fetchAllDoctors = asyncHandler(async (req, res, next) => {
@@ -262,6 +258,8 @@ exports.BookAppointment = asyncHandler(async (req, res, next) => {
         catchAsyncErrors(error, req, res);
     }
 });
+
+
 exports.BookAppointmentManually = asyncHandler(async (req, res) => {
 
     const { day, time } = req?.body;

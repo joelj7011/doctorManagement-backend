@@ -7,11 +7,9 @@ exports.hashPassword = async function (password) {
     this.password = hash;
     return this.save();
 };
-
 exports.comparePassword = async function (password) {
     return await bcrypt.compare(password, this.password);
-}
-
+};
 exports.generateAccessToken = async function () {
     return jwt.sign({
         id: this.id,
@@ -20,7 +18,6 @@ exports.generateAccessToken = async function () {
         role: this.role,
     }, process.env.GENERATE_TOKEN_SECRET, { expiresIn: process.env.GENERATE_TOKEN_EXPIERY });
 };
-
 exports.generateRefreshToken = async function () {
     return jwt.sign({
         id: this.id
