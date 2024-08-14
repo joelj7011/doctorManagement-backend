@@ -25,6 +25,7 @@ connect_to_redis();
 
 
 const server = https.createServer(options, (req, res) => {
+    console.log("hell")
     const ipAddress = req.socket.remoteAddress;
     const log = `date->${new Date().toISOString()} url-> ${req.url} ip-> ${ipAddress} req received\n`;
     const myUrl = url.parse(req.url, true);

@@ -5,6 +5,7 @@ const Doctor = require("../Models/Doctor.Model");
 const ApiError = require("../Utils/Apierror.Utils");
 const { asyncHandler } = require("../Utils/AsyncHandler.Utiles");
 const User = require("../Models/User.Model");
+const { getLineNumber } = require("../Utils/ErrorAtLine");
 
 
 exports.authentication = asyncHandler(async (req, res, next) => {
@@ -42,6 +43,34 @@ exports.authentication = asyncHandler(async (req, res, next) => {
     console.log("|authentication end|");
     next();
 
+});
+exports.validation = asyncHandler(async (req, res, next) => {
+    let find_Doctor;
+    let find_User;
+
+    if (req.params?.id) {
+        find_Doctor = await Doctor.findById(req.params.id);
+        if (!find_Doctor) {
+            find_User = await User.findById(req.params.id);
+            if (!find_User) {
+                return res.status(404).json({ error: `User with ID ${req.params.id} could not be found at file ${__filename} at line ${getLineNumber()}.` });
+            }
+        } else {
+            return res.status(404).json({ error: `entitly could not be found at file ${__filename} at line ${getLineNumber()}` });
+        }
+    }
+    if (req.user) {
+        find_User = await User.findById(req.user?.id);
+        if (find_User) {
+            return res.status(404).json({ error: `User could not be found error at file ${__filename} at line:${getLineNumber()}` });
+        }
+    } else if (req.doctor) {
+        find_Doctor = await Doctor.findById(req.doctor?.id);
+        if (!find_Doctor) {
+            return res.status(404).json({ error: `doctor could not be found error at file ${__filename} at line:${getLineNumber()}` });
+        }
+    }
+    next();
 });
 exports.verifyAuthorityUser = asyncHandler(async (req, res, next) => {
     if (req.doctor.role === "user") {

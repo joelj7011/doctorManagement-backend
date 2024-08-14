@@ -258,8 +258,6 @@ exports.BookAppointment = asyncHandler(async (req, res, next) => {
         catchAsyncErrors(error, req, res);
     }
 });
-
-
 exports.BookAppointmentManually = asyncHandler(async (req, res) => {
 
     const { day, time } = req?.body;

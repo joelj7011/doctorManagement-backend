@@ -1,0 +1,2 @@
+date->2024-08-14T12:07:44.811Z url-> /api/patient ip-> ::1 req received
+date->2024-08-14T12:07:44.944Z url-> /favicon.ico ip-> ::1 req received
