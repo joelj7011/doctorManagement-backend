@@ -1,5 +1,6 @@
 const router = require('express').Router();
-const { fetchAllDoctors, BookAppointment, CancleAppointment, createUser, login, getuserData, History, BookAppointmentManually } = require('../Controllers/Patient.Controller');
+const { fetchAllDoctors, BookAppointment, CancleAppointment, login, getuserData, History, BookAppointmentManually, getDoctorDetails } = require('../Controllers/Patient.Controller');
+const { createUser, loginUser } = require('../Controllers/Authentication.Controllers')
 const { authentication } = require('../Middleware/auth.Middleware');
 const { body } = require('express-validator');
 const upload = require('../Middleware/Multer.Middleware');
@@ -38,7 +39,7 @@ router.post('/createuser', upload.single("profileImage"), [
         return true;
     }).withMessage("role is required")
 ], createUser);
-router.get('/login', [
+router.post('/login', [
     body('email').custom((value) => {
         if (!value) {
             throw new Error("email field is empty");
@@ -50,7 +51,7 @@ router.get('/login', [
             throw new Error("password is required");
         }
     })
-], login);
+], loginUser);
 router.get('/getData', authentication, cacheMiddlWare, setCahe, getuserData);
 router.get('/fetchalldoctors', authentication, fetchAllDoctors);
 router.post('/makeappointment/:id', authentication, (req, res, next) => {
@@ -62,5 +63,6 @@ router.get('/history', authentication, History);
 router.post('/makeappointment_manually/:id', authentication, (req, res, next) => {
     req.isBookingAppointment = true;
     next();
-}, BookAppointmentManually)
+}, BookAppointmentManually);
+router.get('/doctorDetail/:id', authentication, getDoctorDetails);
 module.exports = router;

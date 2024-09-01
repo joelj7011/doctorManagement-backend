@@ -7,7 +7,7 @@ exports.options = {
     secure: false
 };
 exports.corsOptions = {
-    origin: " http://localhost:3000",
+    origin: "http://localhost:5173",
     credentials: true,
 };
 exports.filterdetail = function (data) {

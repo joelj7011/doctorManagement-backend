@@ -1,12 +1,11 @@
 const Doctor = require("../Models/Doctor.Model");
 const User = require("../Models/User.Model");
 
-exports.GenerateTokens = async (userId, doctorId) => {
-    console.log(userId);
+exports.GenerateTokens = async (user) => {
     try {
-        const data = userId ?
-            await User.findById(userId)
-            : await Doctor.findById(doctorId)
+        const data = user.role === 'patient' ?
+            await User.findById(user.id)
+            : await Doctor.findById(user.id)
 
         const accessToken = await data?.generateAccessToken();
         if (accessToken) {
@@ -20,6 +19,7 @@ exports.GenerateTokens = async (userId, doctorId) => {
         } else {
             console.log("test3-failed");
         }
+
         data.refreshToken = refreshToken;
         if (data.refreshToken) {
             console.log("test4-passed");
@@ -33,4 +33,4 @@ exports.GenerateTokens = async (userId, doctorId) => {
         console.log(error);
     }
 
-}
+};

@@ -41,7 +41,6 @@ exports.cacheMiddlWare = asyncHandler(async (req, res, next) => {
     }
 
 });
-
 exports.setCahe = asyncHandler(async (req, res, next) => {
 
     console.log("setting cache.....");

@@ -1,2 +1,17 @@
 date->2024-08-14T12:07:44.811Z url-> /api/patient ip-> ::1 req received
 date->2024-08-14T12:07:44.944Z url-> /favicon.ico ip-> ::1 req received
+date->2024-08-14T13:08:41.529Z url-> / ip-> ::1 req received
+date->2024-08-14T13:40:58.488Z url-> / ip-> ::1 req received
+date->2024-08-14T13:41:12.680Z url-> /api/patient ip-> ::1 req received
+date->2024-08-14T13:41:12.763Z url-> /favicon.ico ip-> ::1 req received
+date->2024-08-14T13:44:16.245Z url-> / ip-> ::1 req received
+date->2024-08-14T13:44:20.922Z url-> /api/patient ip-> ::1 req received
+date->2024-08-14T13:44:31.240Z url-> /api/patient ip-> ::1 req received
+date->2024-08-14T13:44:32.000Z url-> /api/patient ip-> ::1 req received
+date->2024-08-14T15:31:05.102Z url-> / ip-> ::1 req received
+date->2024-08-14T15:45:26.136Z url-> / ip-> ::1 req received
+date->2024-08-14T15:48:54.537Z url-> / ip-> ::1 req received
+date->2024-08-14T15:51:09.503Z url-> / ip-> ::1 req received
+date->2024-08-14T16:21:49.415Z url-> / ip-> ::1 req received
+date->2024-08-14T16:22:19.676Z url-> /api/patient ip-> ::1 req received
+date->2024-08-14T16:22:19.831Z url-> /favicon.ico ip-> ::1 req received

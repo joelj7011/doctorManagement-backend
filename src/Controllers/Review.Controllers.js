@@ -6,8 +6,6 @@ const Review = require("../Models/Review.Models");
 const { default: mongoose } = require("mongoose");
 
 
-
-
 exports.addReview = asyncHandler(async (req, res) => {
 
     const { content } = req.body;
@@ -117,8 +115,5 @@ exports.addReview = asyncHandler(async (req, res) => {
     }
 
 });
-
 exports.deleteReview = asyncHandler(async (req, res) => {
-
-     
 });

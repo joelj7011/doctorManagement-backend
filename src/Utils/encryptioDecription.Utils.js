@@ -1,7 +1,5 @@
 const crypto = require('crypto');
-const ApiError = require('./Apierror.Utils');
 const { getLineNumber } = require('./ErrorAtLine');
-
 const algorithm = 'aes-256-cbc';
 const key = Buffer.from('this_is_a_32_character_long_key_', 'utf-8')
 

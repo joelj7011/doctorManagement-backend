@@ -1,10 +1,11 @@
 const router = require('express').Router();
-const { getDetailOfthePatient, createDoctor, loginDoctor, getDoctorData, setCriteria, manualUpdate } = require('../Controllers/Doctor.Controller');
+const { getDetailOfthePatient, loginDoctor, getDoctorData, setCriteria, manualUpdate } = require('../Controllers/Doctor.Controller');
+const { createUser, loginUser } = require('../Controllers/Authentication.Controllers')
 const { authentication, verifyAuthorityUser } = require('../Middleware/auth.Middleware');
 const { body } = require('express-validator');
 const upload = require('../Middleware/Multer.Middleware');
 
-router.post('/createdoctor', upload.single("profileImage"), [
+router.post('/createuser', upload.single("profileImage"), [
     body('name').custom((value) => {
 
         if (!value || value.trim().length <= 3) {
@@ -36,8 +37,8 @@ router.post('/createdoctor', upload.single("profileImage"), [
         }
         return true;
     }).withMessage("role is required")
-], createDoctor);
-router.get('/logindoctor', [
+], createUser);
+router.post('/login', [
     body('email').custom((value) => {
         if (!value) {
             throw new Error("email field is empty");
@@ -49,7 +50,7 @@ router.get('/logindoctor', [
             throw new Error("password is required");
         }
     })
-], loginDoctor);
+], loginUser);
 router.get('/getDoctordata', authentication, verifyAuthorityUser, getDoctorData);
 router.post('/getAllUser', authentication, verifyAuthorityUser, getDetailOfthePatient);
 router.post('/setcriteria', [
