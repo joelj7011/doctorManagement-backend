@@ -13,12 +13,12 @@ exports.corsOptions = {
 exports.filterdetail = function (data) {
     if (Array.isArray(data) && data.length > 0) {
         return data.map((item) => {
-            const { password, _id, numberOfPatients, createdAt, updatedAt, refreshToken, __v, ...userData } = item.toObject();
+            const { password,numberOfPatients, createdAt, updatedAt, refreshToken, __v, ...userData } = item.toObject();
             return userData;
         });
     } else {
         console.log(data);
-        const { password, _id, numberOfPatients, createdAt, updatedAt, refreshToken, __v, ...userData } = data.toObject();
+        const { password, numberOfPatients, createdAt, updatedAt, refreshToken, __v, ...userData } = data.toObject();
         return userData;
     }
 };

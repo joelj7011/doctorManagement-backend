@@ -1,16 +1,22 @@
 const Doctor = require("../Models/Doctor.Model");
-const { asyncHandler } = require("./AsyncHandler.Utiles");
-
-exports.verifyAuthority = async (req, res, next, docId, day) => {
+const User = require("../Models/User.Model");
+exports.verifyAuthority = async (req, docId, day) => {
+  console.log("|");
   console.log("verifying authority.....");
-
   let data;
+  let Day;
+
   if (docId === null) {
     data = req.params.id;
+    console.log(data);
   } else {
     data = docId;
   }
-  const Day = day.toLowerCase();
+  let authority = true;
+
+  if (day !== null) {
+    Day = day.toLowerCase();
+  }
 
   if (req.user.role === "doctor") {
     return res.status(401).json({
@@ -18,61 +24,87 @@ exports.verifyAuthority = async (req, res, next, docId, day) => {
       message: "Unauthorized To Access This Resource",
     });
   } else if (req.params.id) {
+    let existence_of_day = [];
     const findDoctor = await Doctor.findById(data);
     if (findDoctor) {
       console.log("test1->passed");
     } else {
-      console.log("test1->failed");
-      return res.status(400).json({ error: "doctor not found" });
+      console.log("test1->failed exiting Verify authority");
+      return (authority = false);
     }
 
-    const array = Object.entries(findDoctor);
-    if (array) {
-      console.log("test2->passed");
-    } else {
-      console.log("test2->failed");
-      return res.status(400).json({
-        error: `could not convert the details in to an object error at:${__filename}`,
-      });
+    if (day !== null) {
+      const array = Object.entries(findDoctor);
+      if (array) {
+        console.log("test2->passed");
+      } else {
+        console.log("test2->failed");
+        return (authority = false);
+      }
+
+      for (let i = 0; i <= array[2][1]?.availability.length; i++) {
+        existence_of_day = array[2][1]?.availability?.find((status) => {
+          return status.day === Day;
+        });
+      }
+      console.log("existence_of_day->", existence_of_day);
+      if (!existence_of_day.length === 0) {
+        console.log("test3->failed");
+        return (authority = false);
+      } else {
+        console.log("test3->passed");
+      }
+
+      const check_for_the_day = findDoctor?.availability
+        ?.map((slot) => {
+          return slot.day === existence_of_day?.day;
+        })
+        .filter(Boolean);
+      if (check_for_the_day) {
+        console.log("test4->passed");
+      } else {
+        console.log("test4->failed");
+        return (authority = false);
+      }
+
+      if (
+        req.isBookingAppointment &&
+        findDoctor?.max <= findDoctor?.availability?.laterNumber?.number
+      ) {
+        return (authority = false);
+      }
     }
 
-    let existence_of_day = [];
-    for (let i = 0; i <= array[2][1]?.availability.length; i++) {
-      existence_of_day = array[2][1]?.availability?.map((status) => {
-        return status.day === Day;
-      });
-    }
-    if (!existence_of_day[0]) {
-      return res
-        .status(400)
-        .json({ success: false, meassage: "doctor is not available" });
-    }
-
-    if (
-      req.isBookingAppointment &&
-      findDoctor?.max <= findDoctor?.availability?.laterNumber?.number
-    ) {
-      return res.status(400).json({
-        error: `${findDoctor?.name} is not taking any more clients we will update you if he is available`,
-      });
-    }
-    console.log("verify-authority-passed");
+    console.log("verifying ended.....");
+    console.log("|");
+    return {
+      findDoctor: findDoctor,
+      currentNumber: existence_of_day?.laterNumber?.number,
+    };
   }
 };
 
-exports.validation = async (req, res) => {
+exports.validation = async (req) => {
+  console.log("|");
+  console.log("validation----started");
   let find_Doctor;
   let find_User;
 
+  let validation = {
+    success: true,
+    message: "",
+  };
+
   if (req.params?.id) {
     find_Doctor = await Doctor.findById(req.params.id);
+    console.log(find_Doctor);
     if (!find_Doctor) {
       find_User = await User.findById(req.params.id);
+      console.log(find_User);
       if (!find_User) {
-        return res.status(404).json({
-          error: `User with ID ${
-            req.params.id
-          } could not be found at file ${__filename} at line ${getLineNumber()}.`,
+        return (validation = {
+          success: false,
+          message: "could not retriev the date from the database",
         });
       } else {
         return find_User;
@@ -83,8 +115,9 @@ exports.validation = async (req, res) => {
   } else if (req.user) {
     find_User = await User.findById(req.user?.id);
     if (!find_User) {
-      return res.status(404).json({
-        error: `User could not be found error at file ${__filename} at line:${getLineNumber()}`,
+      return (validation = {
+        success: false,
+        message: `User could not be found error at file ${__filename} at line:${getLineNumber()}`,
       });
     } else {
       return find_User;
@@ -92,11 +125,20 @@ exports.validation = async (req, res) => {
   } else if (req.doctor) {
     find_Doctor = await Doctor.findById(req.doctor?.id);
     if (!find_Doctor) {
-      return res.status(404).json({
-        error: `doctor could not be found error at file ${__filename} at line:${getLineNumber()}`,
+      return (validation = {
+        success: false,
+        message: `doctor could not be found error at file ${__filename} at line:${getLineNumber()}`,
       });
     } else {
       return find_Doctor;
     }
+  }
+  console.log("validation----ended");
+  console.log("|");
+};
+
+exports.message = async (req, res, status, message) => {
+  if ((req, status, message)) {
+    return res.status(status).json(message);
   }
 };

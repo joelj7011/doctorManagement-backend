@@ -4,9 +4,10 @@ const User = require("../Models/User.Model");
 const { asyncHandler } = require("../Utils/AsyncHandler.Utiles");
 const ApiResponse = require("../Utils/Apiresponse.utils");
 const { GenerateTokens } = require("../Utils/SendToken.utils");
-const { options } = require("../../Constants");
+const { options, filterdetail } = require("../../Constants");
 const { getLineNumber } = require("../Utils/ErrorAtLine");
 const { comparePassword } = require("../Utils/Auth.Utils");
+const { validation, message } = require("../Utils/VerfiyAuthority");
 
 exports.createUser = asyncHandler(async (req, res) => {
   const { name, email, password, phone, address, role } = req.body;
@@ -17,6 +18,8 @@ exports.createUser = asyncHandler(async (req, res) => {
     console.log("test1-failed");
     return res.status(401), json({ error: "all fields are required" });
   }
+
+  console.log(req.file);
 
   let user;
   if (role === "doctor") {
@@ -39,7 +42,6 @@ exports.createUser = asyncHandler(async (req, res) => {
       role: req.body.role,
     });
   }
-
   if (user) {
     console.log("test2->passed");
   } else {
@@ -60,7 +62,6 @@ exports.createUser = asyncHandler(async (req, res) => {
 
 exports.loginUser = asyncHandler(async (req, res) => {
   const { email, password, role } = req.body;
-  console.log(email, password, role);
   if (email && password && role) {
     console.log("test1-passed");
   } else {
@@ -89,7 +90,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
     }
   } else {
     user = await User.findOne({ email: email });
-    console.log(user)
+    console.log(user);
     if (user) {
       console.log("test2-passed");
     } else {
@@ -107,7 +108,6 @@ exports.loginUser = asyncHandler(async (req, res) => {
         .json({ message: "please login with correct credentials" });
     }
   }
-  console.log(user.id);
 
   const { accessToken, refreshToken } = await GenerateTokens(user);
   if (accessToken && refreshToken) {
@@ -128,32 +128,6 @@ exports.loginUser = asyncHandler(async (req, res) => {
       )
     );
 });
-
-// exports.asyncHandler(async (req, res) => {
-
-//     const refreshToken = req.cookies?.refreshToken;
-//     if (!refreshToken) {
-//         throw new ApiError(403, " refreshToken not found");
-//     } else {
-//         const decode = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-//         if (!decode) {
-//             throw new ApiError(403, "could not decode");
-//         }
-//         const data = decode?.role === 'doctor' ? await Doctor?.findById(decode?.id) : await User?.findById(decode?.id);
-//         if (!data) {
-//             throw new ApiError(400, "could not find the user");
-//         }
-//         const { accessToken, refreshToken } = await GenerateTokens(data?.id);
-//         if (!accessToken && !refreshToken) {
-//             throw new ApiError(400, "accessToken & refreshToken could not be destrucutred");
-//         }
-//         const filterd = filterdetail(data);
-//         if (!filterd) {
-//             throw new ApiError(400, "could not filter the data ");
-//         }
-//         return res.status(200).cookie('accessToken', accessToken, options).cookie('refreshToken', refreshToken, options).json(new ApiResponse(200, { data: filterd, accessToken, refreshToken }, "user logged in"));
-//     }
-// })
 
 exports.forgotPass = asyncHandler(async (req, res) => {
   const { oldpass, newpass } = req.body;
@@ -217,4 +191,154 @@ exports.forgotPass = asyncHandler(async (req, res) => {
     );
 });
 
-exports.deleteAccount = asyncHandler(async (req, res) => {});
+exports.deleteAccount = asyncHandler(async (req, res) => {
+  //have to schedule the account for deletion
+  //if before scheduled time the user logds back in that means he will keep the account
+});
+
+exports.logout = asyncHandler(async (req, res) => {
+  const data = await validation(req, res);
+  if (data) {
+    console.log("test1->passed", data);
+  } else {
+    console.log("test1->failed");
+    message(req, res, 403, {
+      error: "could not retrive the user from the validation",
+    });
+  }
+
+  let updata_user_data;
+
+  if (req.user) {
+    updata_user_data = await User?.findByIdAndUpdate(
+      data.id,
+      {
+        $unset: {
+          refreshToken: 1,
+        },
+      },
+      {
+        new: true,
+      }
+    );
+  } else {
+    updata_user_data = await Doctor?.findByIdAndUpdate(
+      data.id,
+      {
+        $unset: {
+          refreshToken: 1,
+        },
+      },
+      {
+        new: true,
+      }
+    );
+  }
+
+  if (updata_user_data) {
+    console.log("test2->passed");
+  } else {
+    console.log("test2->failed");
+    message(req, res, 403, { error: "could not update the user" });
+  }
+
+  return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(new ApiResponse(200, null, "user logged out"));
+});
+
+exports.updateUsre = asyncHandler(async (req, res) => {
+  const { name, email, password, phone, address } = req?.body;
+
+  const data = await validation();
+  if (data) {
+    console.log("test1->passed");
+  } else {
+    console.log("test1->failed");
+    message(req, res, 403, {
+      error: "could retrive any daat from the validation",
+    });
+  }
+
+  const newUser = {};
+  if (name) {
+    newUser.name = name;
+  }
+  if (email) {
+    newUser.email = email;
+  }
+  if (password) {
+    newUser.password = password;
+  }
+  if (phone) {
+    newUser.password = password;
+  }
+  if (address) {
+    newUser.address = address;
+  }
+  let user;
+
+  if (req.user) {
+    user = await User.findByIdAndUpdate(
+      data?.id,
+      {
+        $set: newUser,
+      },
+      {
+        new: true,
+        runValidators: true,
+        useFindAndModify: false,
+      }
+    ).select("-_id", "-password", "-refreshToken");
+  } else {
+    user = await Doctor.findByIdAndUpdate(
+      data?.id,
+      {
+        $set: newUser,
+      },
+      {
+        new: true,
+        runValidators: true,
+        useFindAndModify: false,
+      }
+    ).select("-_id", "-password", "-refreshToken");
+  }
+
+  return message(req, res, 200, new ApiResponse(200, user, "user updated"));
+});
+
+exports.refreshAccessToken = asyncHandler(async (req, res) => {
+  const refreshtoken = await req.cookies?.refreshToken;
+  if (!refreshtoken) {
+    return message(req, res, 500, "could not retrive the token");
+  } else {
+    const decode = jwt.verify(refreshtoken, process.env.REFRESH_TOKEN_SECRET);
+    if (!decode) {
+      return message(req, res, 500, { error: "could not decode" });
+    }
+    const data =
+      decode?.role === "doctor"
+        ? await Doctor?.findById(decode?.id)
+        : await User?.findById(decode?.id);
+    if (!data) {
+      return message(req, res, 403, { error: "could not find the user" });
+    }
+    const { accessToken, refreshToken } = await GenerateTokens(data);
+    if (!accessToken && !refreshToken) {
+      return message(req, res, 500, { error: "could not retrive the token" });
+    }
+    const filterd = filterdetail(data);
+    if (!filterd) {
+      return message(req, res, 500, { error: "could not filter the data" });
+    }
+    return res
+      .status(200)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", refreshToken, options)
+      .json(
+        new ApiResponse(200, { accessToken, refreshToken }, "user logged in")
+      );
+  }
+});
